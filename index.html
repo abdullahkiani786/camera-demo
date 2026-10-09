@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camera Demo</title>
+<style>
+body{font-family:Arial,sans-serif;text-align:center;background:#111;color:#fff;padding:30px}
+video{width:90%;max-width:600px;border-radius:15px;margin-top:20px;background:#000}
+button{padding:12px 24px;margin:10px;border:0;border-radius:8px;cursor:pointer;font-size:16px}
+</style>
+</head>
+<body>
+<h1>Camera Demo</h1>
+<p>Camera start karne ke liye button press karein.</p>
+<button onclick="startCamera()">Allow Camera</button>
+<button onclick="stopCamera()">Stop Camera</button>
+<br>
+<video id="camera" autoplay playsinline></video>
+<script>
+let stream;
+async function startCamera(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    document.getElementById("camera").srcObject=stream;
+  }catch(error){
+    alert("Camera permission denied ya camera available nahi hai.");
+    console.error(error);
+  }
+}
+function stopCamera(){
+  if(stream){
+    stream.getTracks().forEach(track=>track.stop());
+    document.getElementById("camera").srcObject=null;
+  }
+}
+</script>
+</body>
+</html>
