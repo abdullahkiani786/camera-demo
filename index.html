@@ -3,37 +3,188 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Camera Demo</title>
+<title>Camera Share Demo</title>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
 <style>
-body{font-family:Arial,sans-serif;text-align:center;background:#111;color:#fff;padding:30px}
-video{width:90%;max-width:600px;border-radius:15px;margin-top:20px;background:#000}
-button{padding:12px 24px;margin:10px;border:0;border-radius:8px;cursor:pointer;font-size:16px}
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #111;
+  color: white;
+  padding: 25px;
+}
+
+button {
+  padding: 12px 20px;
+  margin: 8px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+input {
+  padding: 12px;
+  width: 250px;
+  max-width: 80%;
+}
+
+video {
+  width: 90%;
+  max-width: 600px;
+  margin-top: 20px;
+  background: #000;
+  border-radius: 12px;
+}
+
+#status {
+  margin: 15px;
+}
 </style>
 </head>
+
 <body>
-<h1>Camera Demo</h1>
-<p>Camera start karne ke liye button press karein.</p>
-<button onclick="startCamera()">Allow Camera</button>
-<button onclick="stopCamera()">Stop Camera</button>
+
+<h1>Camera Share Demo</h1>
+
+<p id="status">Connecting...</p>
+
+<h3>Your Peer ID</h3>
+<p id="myId">Generating...</p>
+
+<hr>
+
+<h3>Camera Owner</h3>
+
+<button onclick="startCamera()">Start Camera</button>
+
 <br>
-<video id="camera" autoplay playsinline></video>
+
+<input id="viewerId" placeholder="Viewer Peer ID">
+
+<br>
+
+<button onclick="shareCamera()">Share Camera</button>
+
+<button onclick="stopCamera()">Stop Camera</button>
+
+<br>
+
+<video id="localVideo" autoplay playsinline muted></video>
+
+<hr>
+
+<h3>Viewer</h3>
+
+<video id="remoteVideo" autoplay playsinline controls></video>
+
 <script>
-let stream;
-async function startCamera(){
-  try{
-    stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
-    document.getElementById("camera").srcObject=stream;
-  }catch(error){
-    alert("Camera permission denied ya camera available nahi hai.");
-    console.error(error);
-  }
+
+let peer;
+let stream = null;
+
+peer = new Peer();
+
+peer.on("open", function(id) {
+
+    document.getElementById("myId").innerText = id;
+
+    document.getElementById("status").innerText =
+        "Connected. Share your Peer ID only with the person you want to connect with.";
+});
+
+peer.on("error", function(error) {
+
+    document.getElementById("status").innerText =
+        "Connection error: " + error.type;
+});
+
+
+async function startCamera() {
+
+    try {
+
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+        });
+
+        document.getElementById("localVideo").srcObject = stream;
+
+        document.getElementById("status").innerText =
+            "Camera permission granted. Camera is NOT shared yet.";
+
+    } catch (error) {
+
+        document.getElementById("status").innerText =
+            "Camera permission denied or camera unavailable.";
+
+        console.error(error);
+    }
 }
-function stopCamera(){
-  if(stream){
-    stream.getTracks().forEach(track=>track.stop());
-    document.getElementById("camera").srcObject=null;
-  }
+
+
+function shareCamera() {
+
+    if (!stream) {
+
+        alert("First press Start Camera and allow camera permission.");
+        return;
+    }
+
+    const viewerId =
+        document.getElementById("viewerId").value.trim();
+
+    if (!viewerId) {
+
+        alert("Enter the viewer Peer ID.");
+        return;
+    }
+
+    peer.call(viewerId, stream);
+
+    document.getElementById("status").innerText =
+        "Camera sharing started.";
 }
+
+
+peer.on("call", function(call) {
+
+    // Viewer does not send its own camera.
+    call.answer();
+
+    call.on("stream", function(remoteStream) {
+
+        document.getElementById("remoteVideo").srcObject =
+            remoteStream;
+
+        document.getElementById("status").innerText =
+            "Remote camera connected.";
+    });
+
+});
+
+
+function stopCamera() {
+
+    if (stream) {
+
+        stream.getTracks().forEach(function(track) {
+            track.stop();
+        });
+
+        stream = null;
+
+        document.getElementById("localVideo").srcObject = null;
+
+        document.getElementById("status").innerText =
+            "Camera stopped.";
+    }
+}
+
 </script>
+
 </body>
 </html>
